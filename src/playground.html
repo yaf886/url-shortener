@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>URL Shortener Playground</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #222638;
+    --border: #2e3248;
+    --text: #e8eaf0;
+    --muted: #6b7194;
+    --accent: #6c63ff;
+    --accent2: #4ecca3;
+    --danger: #ff6b6b;
+    --warn: #ffd166;
+    --green: #06d6a0;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+    --font: 'Inter', system-ui, sans-serif;
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 20px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+
+  .badge {
+    font-size: 11px;
+    background: rgba(108,99,255,0.2);
+    color: var(--accent);
+    padding: 3px 8px;
+    border-radius: 20px;
+    border: 1px solid rgba(108,99,255,0.3);
+    font-weight: 500;
+  }
+
+  .server-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* ── Layout ── */
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 32px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .card-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface2);
+  }
+
+  .method-badge {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 5px;
+    letter-spacing: 0.5px;
+  }
+
+  .method-post { background: rgba(78,204,163,0.15); color: var(--accent2); }
+  .method-get  { background: rgba(108,99,255,0.15); color: #a78bfa; }
+  .method-del  { background: rgba(255,107,107,0.15); color: var(--danger); }
+
+  .endpoint-path {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text);
+  }
+
+  .card-body { padding: 20px; }
+
+  /* ── Form elements ── */
+  .form-group { margin-bottom: 14px; }
+
+  label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  input[type="text"], input[type="number"], input[type="url"] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-size: 13px;
+    font-family: var(--font-mono);
+    transition: border-color 0.2s;
+    outline: none;
+  }
+
+  input:focus { border-color: var(--accent); }
+
+  .row { display: flex; gap: 12px; }
+  .row > * { flex: 1; }
+
+  /* ── Buttons ── */
+  button {
+    cursor: pointer;
+    border: none;
+    font-family: var(--font);
+    font-weight: 600;
+    transition: all 0.15s;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    width: 100%;
+    margin-top: 4px;
+  }
+
+  .btn-primary:hover { background: #7c74ff; transform: translateY(-1px); }
+  .btn-primary:active { transform: translateY(0); }
+
+  .btn-danger {
+    background: rgba(255,107,107,0.15);
+    color: var(--danger);
+    border: 1px solid rgba(255,107,107,0.3);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+  }
+
+  .btn-danger:hover { background: rgba(255,107,107,0.25); }
+
+  .btn-copy {
+    background: var(--surface2);
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+  }
+
+  .btn-copy:hover { color: var(--text); border-color: var(--muted); }
+
+  /* ── Response panel ── */
+  .response-panel {
+    margin-top: 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    display: none;
+  }
+
+  .response-panel.visible { display: block; }
+
+  .response-header {
+    padding: 8px 14px;
+    background: var(--surface2);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .status-pill {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+
+  .status-2xx { background: rgba(6,214,160,0.15); color: var(--green); }
+  .status-4xx { background: rgba(255,107,107,0.15); color: var(--danger); }
+  .status-5xx { background: rgba(255,209,102,0.15); color: var(--warn); }
+
+  .response-time {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+  }
+
+  .response-body {
+    padding: 14px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.7;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    max-height: 280px;
+    overflow-y: auto;
+  }
+
+  /* JSON syntax highlighting */
+  .json-key    { color: #a78bfa; }
+  .json-str    { color: var(--accent2); }
+  .json-num    { color: var(--warn); }
+  .json-bool   { color: var(--danger); }
+  .json-null   { color: var(--muted); }
+
+  /* ── Links table ── */
+  .links-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  .links-table th {
+    text-align: left;
+    padding: 8px 12px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .links-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+    color: var(--text);
+  }
+
+  .links-table tr:last-child td { border-bottom: none; }
+  .links-table tr:hover td { background: var(--surface2); }
+
+  .code-chip {
+    font-family: var(--font-mono);
+    background: rgba(108,99,255,0.15);
+    color: var(--accent);
+    padding: 3px 8px;
+    border-radius: 5px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .url-cell {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+  }
+
+  .clicks-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(78,204,163,0.1);
+    color: var(--accent2);
+    padding: 3px 8px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .status-active  { color: var(--green); font-size: 11px; font-weight: 600; }
+  .status-expired { color: var(--danger); font-size: 11px; font-weight: 600; }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .loading {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  /* ── Notification toast ── */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s;
+    z-index: 999;
+  }
+
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { border-color: rgba(6,214,160,0.4); color: var(--green); }
+  .toast.error   { border-color: rgba(255,107,107,0.4); color: var(--danger); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🔗</div>
+    URL Shortener
+    <span class="badge">Playground</span>
+  </div>
+  <div class="server-status">
+    <div class="dot" id="statusDot"></div>
+    <span id="statusText">Mengecek server...</span>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- ── SHORTEN ── -->
+  <div class="card">
+    <div class="card-header">
+      <span class="method-badge method-post">POST</span>
+      <span class="endpoint-path">/api/shorten</span>
+      <span style="font-size:12px; color:var(--muted); margin-left:auto;">Buat short URL baru</span>
+    </div>
+    <div class="card-body">
+      <div class="form-group">
+        <label>URL Asli</label>
+        <input type="url" id="inputUrl" placeholder="https://website.com/artikel-yang-sangat-panjang-sekali">
+      </div>
+      <div class="row">
+        <div class="form-group">
+          <label>Expired (hari) — opsional</label>
+          <input type="number" id="inputDays" placeholder="Kosongkan = tidak expired" min="1" max="365">
+        </div>
+      </div>
+      <button class="btn-primary" onclick="doShorten()">⚡ Generate Short URL</button>
+      <div class="response-panel" id="res-shorten">
+        <div class="response-header">
+          <span class="status-pill" id="status-shorten"></span>
+          <span class="response-time" id="time-shorten"></span>
+        </div>
+        <div class="response-body" id="body-shorten"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STATS ── -->
+  <div class="card">
+    <div class="card-header">
+      <span class="method-badge method-get">GET</span>
+      <span class="endpoint-path">/api/stats/:code</span>
+      <span style="font-size:12px; color:var(--muted); margin-left:auto;">Lihat statistik link</span>
+    </div>
+    <div class="card-body">
+      <div class="form-group">
+        <label>Short Code</label>
+        <input type="text" id="inputStatsCode" placeholder="contoh: mK7p2x">
+      </div>
+      <button class="btn-primary" onclick="doStats()">📊 Lihat Statistik</button>
+      <div class="response-panel" id="res-stats">
+        <div class="response-header">
+          <span class="status-pill" id="status-stats"></span>
+          <span class="response-time" id="time-stats"></span>
+        </div>
+        <div class="response-body" id="body-stats"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── DELETE ── -->
+  <div class="card">
+    <div class="card-header">
+      <span class="method-badge method-del">DELETE</span>
+      <span class="endpoint-path">/api/links/:code</span>
+      <span style="font-size:12px; color:var(--muted); margin-left:auto;">Hapus short URL</span>
+    </div>
+    <div class="card-body">
+      <div class="form-group">
+        <label>Short Code yang akan dihapus</label>
+        <input type="text" id="inputDeleteCode" placeholder="contoh: mK7p2x">
+      </div>
+      <button class="btn-primary" style="background:rgba(255,107,107,0.2);color:var(--danger);border:1px solid rgba(255,107,107,0.3);" onclick="doDelete()">🗑️ Hapus Link</button>
+      <div class="response-panel" id="res-delete">
+        <div class="response-header">
+          <span class="status-pill" id="status-delete"></span>
+          <span class="response-time" id="time-delete"></span>
+        </div>
+        <div class="response-body" id="body-delete"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ALL LINKS ── -->
+  <div class="card">
+    <div class="card-header">
+      <span class="method-badge method-get">GET</span>
+      <span class="endpoint-path">/api/links</span>
+      <span style="font-size:12px; color:var(--muted); margin-left:auto;">Semua link tersimpan</span>
+      <button class="btn-copy" onclick="loadLinks()" style="margin-left:8px;">🔄 Refresh</button>
+    </div>
+    <div class="card-body" id="links-container">
+      <div class="empty-state">Klik Refresh untuk memuat data</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+const BASE = window.location.origin
+
+// ── Health check ──────────────────────────────────────────────────────────
+async function checkHealth() {
+  try {
+    const r = await fetch(`${BASE}/health`)
+    if (r.ok) {
+      document.getElementById('statusDot').style.background = '#06d6a0'
+      document.getElementById('statusText').textContent = 'Server online'
+    }
+  } catch {
+    document.getElementById('statusDot').style.background = '#ff6b6b'
+    document.getElementById('statusText').textContent = 'Server offline'
+  }
+}
+checkHealth()
+
+// ── Syntax highlighting JSON ──────────────────────────────────────────────
+function highlight(json) {
+  return JSON.stringify(json, null, 2)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"([^"]+)":/g, '<span class="json-key">"$1"</span>:')
+    .replace(/: "([^"]*)"/g, ': <span class="json-str">"$1"</span>')
+    .replace(/: (true|false)/g, ': <span class="json-bool">$1</span>')
+    .replace(/: (null)/g, ': <span class="json-null">$1</span>')
+    .replace(/: (-?\d+\.?\d*)/g, ': <span class="json-num">$1</span>')
+}
+
+// ── Render response panel ─────────────────────────────────────────────────
+function showResponse(id, status, data, ms) {
+  const panel = document.getElementById(`res-${id}`)
+  const statusEl = document.getElementById(`status-${id}`)
+  const timeEl = document.getElementById(`time-${id}`)
+  const bodyEl = document.getElementById(`body-${id}`)
+
+  panel.classList.add('visible')
+  statusEl.textContent = status
+  statusEl.className = 'status-pill ' +
+    (status < 300 ? 'status-2xx' : status < 500 ? 'status-4xx' : 'status-5xx')
+  timeEl.textContent = `${ms}ms`
+  bodyEl.innerHTML = highlight(data)
+}
+
+// ── Toast notification ────────────────────────────────────────────────────
+function toast(msg, type = 'success') {
+  const el = document.getElementById('toast')
+  el.textContent = (type === 'success' ? '✅ ' : '❌ ') + msg
+  el.className = `toast show ${type}`
+  setTimeout(() => el.className = 'toast', 2800)
+}
+
+// ── SHORTEN ───────────────────────────────────────────────────────────────
+async function doShorten() {
+  const url = document.getElementById('inputUrl').value.trim()
+  const days = document.getElementById('inputDays').value
+
+  if (!url) { toast('URL tidak boleh kosong!', 'error'); return }
+
+  const t0 = Date.now()
+  try {
+    const r = await fetch(`${BASE}/api/shorten`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, ...(days && { expiresInDays: parseInt(days) }) })
+    })
+    const data = await r.json()
+    showResponse('shorten', r.status, data, Date.now() - t0)
+
+    if (data.success) {
+      // Auto-isi code ke form stats & delete
+      document.getElementById('inputStatsCode').value = data.data.code
+      document.getElementById('inputDeleteCode').value = data.data.code
+      toast(`Short URL dibuat: /${data.data.code}`)
+      loadLinks()
+    }
+  } catch (e) {
+    toast('Gagal connect ke server. Pastikan npm run dev jalan!', 'error')
+  }
+}
+
+// ── STATS ─────────────────────────────────────────────────────────────────
+async function doStats() {
+  const code = document.getElementById('inputStatsCode').value.trim()
+  if (!code) { toast('Masukkan short code dulu!', 'error'); return }
+
+  const t0 = Date.now()
+  try {
+    const r = await fetch(`${BASE}/api/stats/${code}`)
+    const data = await r.json()
+    showResponse('stats', r.status, data, Date.now() - t0)
+  } catch {
+    toast('Gagal connect ke server', 'error')
+  }
+}
+
+// ── DELETE ────────────────────────────────────────────────────────────────
+async function doDelete() {
+  const code = document.getElementById('inputDeleteCode').value.trim()
+  if (!code) { toast('Masukkan short code dulu!', 'error'); return }
+  if (!confirm(`Yakin hapus link "/${code}"? Tidak bisa di-undo!`)) return
+
+  const t0 = Date.now()
+  try {
+    const r = await fetch(`${BASE}/api/links/${code}`, { method: 'DELETE' })
+    const data = await r.json()
+    showResponse('delete', r.status, data, Date.now() - t0)
+
+    if (data.success) { toast(`Link /${code} berhasil dihapus`); loadLinks() }
+    else toast(data.error, 'error')
+  } catch {
+    toast('Gagal connect ke server', 'error')
+  }
+}
+
+// ── LOAD ALL LINKS ────────────────────────────────────────────────────────
+async function loadLinks() {
+  const container = document.getElementById('links-container')
+  container.innerHTML = '<div class="empty-state">Memuat...</div>'
+
+  try {
+    const r = await fetch(`${BASE}/api/links`)
+    const data = await r.json()
+
+    if (!data.data || data.data.length === 0) {
+      container.innerHTML = '<div class="empty-state">Belum ada link. Buat dulu di atas! 👆</div>'
+      return
+    }
+
+    container.innerHTML = `
+      <table class="links-table">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>URL Asli</th>
+            <th>Klik</th>
+            <th>Status</th>
+            <th>Expired</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.data.map(link => `
+            <tr>
+              <td>
+                <a href="/${link.code}" target="_blank" style="text-decoration:none;">
+                  <span class="code-chip">${link.code}</span>
+                </a>
+              </td>
+              <td class="url-cell" title="${link.original_url}">${link.original_url}</td>
+              <td><span class="clicks-badge">▲ ${link.clicks}</span></td>
+              <td><span class="status-${link.status}">${link.status === 'active' ? '● active' : '○ expired'}</span></td>
+              <td style="font-size:11px; color:var(--muted); font-family:var(--font-mono);">
+                ${link.expires_at ? link.expires_at.slice(0,10) : '∞ tidak ada'}
+              </td>
+              <td>
+                <button class="btn-danger" onclick="quickDelete('${link.code}')">hapus</button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      <div style="padding: 10px 12px; font-size: 11px; color: var(--muted); border-top: 1px solid var(--border);">
+        Total: ${data.total} link · Klik code untuk redirect
+      </div>
+    `
+  } catch {
+    container.innerHTML = '<div class="empty-state">Gagal memuat. Server offline?</div>'
+  }
+}
+
+async function quickDelete(code) {
+  if (!confirm(`Hapus /${code}?`)) return
+  await fetch(`${BASE}/api/links/${code}`, { method: 'DELETE' })
+  toast(`/${code} dihapus`)
+  loadLinks()
+}
+
+// Auto load links on start
+loadLinks()
+</script>
+</body>
+</html>
